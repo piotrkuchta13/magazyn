@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Inwentaryzacja Magazynu</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--surface3:#eef0f4;
+  --border:#e2e5eb;--border2:#d0d4dc;
+  --text:#1a1d23;--text2:#5a6075;--text3:#9098b0;
+  --blue:#2563eb;--blue-dim:#eff4ff;--blue-mid:#93c5fd;
+  --green:#16a34a;--green-dim:#f0fdf4;
+  --red:#dc2626;--red-dim:#fef2f2;
+  --yellow:#d97706;--yellow-dim:#fffbeb;
+  --r:10px;--rsm:6px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;font-size:15px}
+
+/* TOPBAR */
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;padding:0 1rem}
+.topbar-inner{max-width:900px;margin:0 auto;height:56px;display:flex;align-items:center;justify-content:space-between;gap:.75rem}
+.logo{display:flex;align-items:center;gap:.6rem}
+.logo-icon{width:32px;height:32px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+.logo-text{font-size:.95rem;font-weight:700;letter-spacing:-.02em}
+.logo-sub{font-size:.72rem;color:var(--text3)}
+.topbar-actions{display:flex;gap:.5rem}
+
+/* LAYOUT */
+.app{max-width:900px;margin:0 auto;padding:0 1rem 5rem}
+
+/* BUTTONS */
+.btn{font-family:'Inter',sans-serif;font-size:.82rem;font-weight:600;border:none;border-radius:var(--rsm);padding:.5rem 1rem;cursor:pointer;display:inline-flex;align-items:center;gap:.4rem;transition:all .15s;white-space:nowrap}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#1d4ed8;box-shadow:0 2px 8px rgba(37,99,235,.3)}
+.btn-success{background:var(--green);color:#fff}
+.btn-success:hover{background:#15803d}
+.btn-outline{background:transparent;color:var(--text2);border:1px solid var(--border2)}
+.btn-outline:hover{border-color:var(--blue);color:var(--blue);background:var(--blue-dim)}
+.btn-danger{background:transparent;color:var(--red);border:1px solid rgba(220,38,38,.2)}
+.btn-danger:hover{background:var(--red-dim)}
+.btn-sm{padding:.35rem .75rem;font-size:.78rem}
+.btn-icon{width:34px;height:34px;padding:0;justify-content:center}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* PROGRESS */
+.progress-wrap{padding:1.25rem 0 .5rem}
+.progress-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:.5rem}
+.progress-label{font-size:.82rem;font-weight:600;color:var(--text2)}
+.progress-count{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:600;color:var(--blue)}
+.progress-bar{height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),#60a5fa);border-radius:3px;transition:width .4s}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:1.25rem}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.85rem 1rem}
+.stat-value{font-family:'JetBrains Mono',monospace;font-size:1.4rem;font-weight:600;line-height:1;margin-bottom:.2rem}
+.stat-label{font-size:.72rem;font-weight:500;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.stat-blue .stat-value{color:var(--blue)}
+.stat-green .stat-value{color:var(--green)}
+.stat-red .stat-value{color:var(--red)}
+.stat-yellow .stat-value{color:var(--yellow)}
+
+/* SYNC BAR */
+.sync-bar{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:.7rem 1rem;margin-bottom:1.25rem;display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+.sync-label{font-size:.72rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;flex-shrink:0}
+.sync-hint{font-size:.73rem;color:var(--text3);margin-left:auto}
+
+/* TOOLBAR */
+.toolbar{display:flex;gap:.5rem;margin-bottom:1rem;flex-wrap:wrap;align-items:center}
+.search-wrap{position:relative;flex:1;min-width:160px}
+.search-icon{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--text3);font-size:.9rem;pointer-events:none}
+.search-input{width:100%;padding:.52rem .75rem .52rem 2.1rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);font-family:'Inter',sans-serif;font-size:.88rem;color:var(--text);outline:none;transition:border-color .2s}
+.search-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+.search-input::placeholder{color:var(--text3)}
+select.filter-sel{padding:.52rem .75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--rsm);font-family:'Inter',sans-serif;font-size:.82rem;color:var(--text2);outline:none;cursor:pointer}
+select.filter-sel:focus{border-color:var(--blue)}
+
+/* ITEM LIST */
+.item-list{display:flex;flex-direction:column;gap:.5rem}
+
+/* ITEM ROW — tap to open */
+.item-row{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);display:grid;grid-template-columns:56px 1fr auto;align-items:center;gap:0;cursor:pointer;overflow:hidden;transition:box-shadow .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.item-row:hover{box-shadow:0 2px 12px rgba(0,0,0,.07);border-color:var(--blue-mid)}
+.item-row:active{background:var(--surface2)}
+.item-row.s-ok{border-left:3px solid var(--green)}
+.item-row.s-short{border-left:3px solid var(--red)}
+.item-row.s-over{border-left:3px solid var(--yellow)}
+.item-row.s-pending{border-left:3px solid var(--border2)}
+
+.row-thumb{width:56px;height:56px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:1.5rem;color:var(--text3);flex-shrink:0;overflow:hidden}
+.row-thumb img{width:100%;height:100%;object-fit:cover}
+
+.row-body{padding:.55rem .75rem;min-width:0}
+.row-code{font-family:'JetBrains Mono',monospace;font-size:.7rem;color:var(--text3);letter-spacing:.02em}
+.row-name{font-size:.9rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.3}
+.row-meta{font-size:.76rem;color:var(--text2);margin-top:.1rem;display:flex;align-items:center;gap:.5rem}
+.row-meta .exp{font-family:'JetBrains Mono',monospace;font-weight:600}
+
+.row-right{padding:.5rem .6rem;display:flex;flex-direction:column;align-items:flex-end;gap:.2rem;flex-shrink:0;min-width:100px}
+.counted-pill{font-family:'JetBrains Mono',monospace;font-size:.85rem;font-weight:700;padding:.25rem .6rem;border-radius:20px;line-height:1}
+.counted-pending{background:var(--surface3);color:var(--text3)}
+.counted-ok{background:var(--green-dim);color:var(--green)}
+.counted-short{background:var(--red-dim);color:var(--red)}
+.counted-over{background:var(--yellow-dim);color:var(--yellow)}
+
+.diff-pill{font-family:'JetBrains Mono',monospace;font-size:.7rem;font-weight:600;color:var(--text3)}
+.diff-short{color:var(--red)}
+.diff-over{color:var(--yellow)}
+
+.row-arrow{color:var(--text3);font-size:.85rem}
+
+/* EMPTY */
+.empty-state{text-align:center;padding:4rem 2rem;color:var(--text3)}
+.empty-icon{font-size:3.5rem;margin-bottom:1rem;opacity:.35}
+.empty-title{font-size:1.1rem;font-weight:700;color:var(--text2);margin-bottom:.4rem}
+.empty-sub{font-size:.85rem;line-height:1.6}
+
+/* OVERLAY */
+.overlay{position:fixed;inset:0;background:rgba(15,20,35,.5);backdrop-filter:blur(4px);z-index:100;display:none;align-items:center;justify-content:center;padding:1rem}
+.overlay.show{display:flex}
+#importOverlay, #reportOverlay, #addOverlay{z-index:200;}
+#photoOverlay{z-index:300;}
+
+/* MODAL BASE */
+.modal{background:var(--surface);border-radius:14px;width:100%;max-width:500px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.2);animation:mIn .2s ease}
+@keyframes mIn{from{opacity:0;transform:scale(.97) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
+.modal-header{padding:1.1rem 1.25rem .9rem;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;background:var(--surface);z-index:2}
+.modal-title{font-size:1rem;font-weight:700}
+.modal-close{background:var(--surface3);border:none;border-radius:6px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:.9rem;transition:all .15s}
+.modal-close:hover{background:var(--red-dim);color:var(--red)}
+.modal-body{padding:1.25rem}
+
+/* DETAIL MODAL */
+.detail-photos{display:grid;grid-template-columns:repeat(3,1fr);gap:.5rem;margin-bottom:1.25rem}
+.detail-photo-slot{aspect-ratio:1;background:var(--surface2);border:2px dashed var(--border2);border-radius:var(--r);display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;overflow:hidden;position:relative;transition:border-color .2s}
+.detail-photo-slot:hover{border-color:var(--blue)}
+.detail-photo-slot img{width:100%;height:100%;object-fit:cover;cursor:zoom-in}
+.detail-photo-slot .slot-label{font-size:.7rem;font-weight:600;color:var(--text3);text-align:center;margin-top:.3rem}
+.detail-photo-slot .slot-icon{font-size:1.5rem;opacity:.4}
+.detail-photo-slot input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.slot-remove{position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);border:none;color:#fff;border-radius:4px;width:22px;height:22px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.7rem;z-index:3}
+.slot-remove:hover{background:var(--red)}
+.slot-desc{position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.55);color:#fff;font-size:.65rem;font-weight:600;text-align:center;padding:.2rem .3rem;line-height:1.3}
+
+.detail-info{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:.85rem 1rem;margin-bottom:1.25rem;display:grid;grid-template-columns:1fr 1fr;gap:.5rem}
+.dinfo-label{font-size:.7rem;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.1rem}
+.dinfo-value{font-family:'JetBrains Mono',monospace;font-size:.92rem;font-weight:700;color:var(--text)}
+.dinfo-full{grid-column:1/-1}
+
+.counts-section{margin-bottom:1.25rem}
+.counts-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.6rem}
+.counts-title{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--text3)}
+.counts-total{font-family:'JetBrains Mono',monospace;font-size:1.2rem;font-weight:700;color:var(--blue)}
+
+.count-entries{display:flex;flex-direction:column;gap:.3rem;margin-bottom:.75rem}
+.count-entry{display:flex;align-items:center;justify-content:space-between;padding:.4rem .6rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);font-size:.82rem}
+.count-entry-val{font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text)}
+.count-entry-time{font-size:.7rem;color:var(--text3)}
+.count-entry-del{background:none;border:none;cursor:pointer;color:var(--text3);font-size:.85rem;padding:.1rem .3rem;border-radius:4px;transition:all .15s}
+.count-entry-del:hover{background:var(--red-dim);color:var(--red)}
+
+.add-count-row{display:flex;gap:.5rem;align-items:center}
+.count-input-big{flex:1;padding:.65rem .85rem;background:var(--surface);border:2px solid var(--border);border-radius:var(--rsm);font-family:'JetBrains Mono',monospace;font-size:1.1rem;font-weight:700;color:var(--text);text-align:center;outline:none;transition:border-color .2s}
+.count-input-big:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+
+.diff-summary{padding:.65rem .85rem;border-radius:var(--rsm);font-size:.85rem;font-weight:600;text-align:center;margin-top:.75rem}
+.diff-ok{background:var(--green-dim);color:var(--green);border:1px solid rgba(22,163,74,.2)}
+.diff-s{background:var(--red-dim);color:var(--red);border:1px solid rgba(220,38,38,.2)}
+.diff-ov{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(217,119,6,.2)}
+.diff-none{background:var(--surface2);color:var(--text3);border:1px solid var(--border)}
+
+/* FORM */
+.form-field{margin-bottom:1rem}
+.form-label{display:block;font-size:.76rem;font-weight:600;color:var(--text2);margin-bottom:.35rem;text-transform:uppercase;letter-spacing:.05em}
+.form-input{width:100%;padding:.62rem .85rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);font-family:'Inter',sans-serif;font-size:.9rem;color:var(--text);outline:none;transition:border-color .2s}
+.form-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(37,99,235,.1);background:#fff}
+.form-actions{display:flex;gap:.5rem;justify-content:flex-end;padding-top:1rem;border-top:1px solid var(--border);margin-top:.5rem}
+
+/* CSV IMPORT */
+.import-info{background:var(--blue-dim);border:1px solid var(--blue-mid);border-radius:var(--rsm);padding:.85rem 1rem;font-size:.82rem;color:var(--blue);line-height:1.6;margin-bottom:1rem}
+.import-info code{background:rgba(37,99,235,.1);padding:.1rem .35rem;border-radius:3px;font-family:'JetBrains Mono',monospace}
+.csv-drop{border:2px dashed var(--border2);border-radius:var(--r);background:var(--surface2);padding:1.5rem;text-align:center;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
+.csv-drop:hover{border-color:var(--blue);background:var(--blue-dim)}
+.csv-drop input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
+.csv-drop-icon{font-size:2rem;margin-bottom:.4rem;opacity:.4}
+.csv-drop-label{font-size:.82rem;color:var(--text3)}
+.col-preview{background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:.75rem 1rem;font-size:.78rem;font-family:'JetBrains Mono',monospace;color:var(--text2);max-height:150px;overflow-y:auto;line-height:1.8;margin-bottom:1rem}
+
+/* REPORT */
+.report-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.25rem}
+.rep-card{padding:.85rem 1rem;border-radius:var(--r);text-align:center;border:1px solid}
+.rep-ok{background:var(--green-dim);border-color:rgba(22,163,74,.2);color:var(--green)}
+.rep-s{background:var(--red-dim);border-color:rgba(220,38,38,.2);color:var(--red)}
+.rep-ov{background:var(--yellow-dim);border-color:rgba(217,119,6,.2);color:var(--yellow)}
+.rep-num{font-family:'JetBrains Mono',monospace;font-size:1.8rem;font-weight:700;line-height:1}
+.rep-lbl{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;margin-top:.2rem}
+.rep-row{display:flex;justify-content:space-between;align-items:center;padding:.5rem .75rem;border-radius:6px;font-size:.82rem;margin-bottom:.35rem}
+
+/* PHOTO VIEWER */
+#photoViewerImg{max-width:90vw;max-height:85vh;border-radius:10px;object-fit:contain;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+
+/* TOAST */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:#fff;border-radius:8px;padding:.65rem 1.1rem;font-size:.85rem;font-weight:500;z-index:999;opacity:0;transition:all .3s;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.2)}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.success{background:var(--green)}
+.toast.error{background:var(--red)}
+.toast.info{background:var(--blue)}
+
+/* FAB */
+.mobile-fab{position:fixed;bottom:1.25rem;right:1.25rem;display:none;flex-direction:column;gap:.5rem;z-index:50}
+.fab-btn{width:48px;height:48px;border-radius:50%;border:none;display:flex;align-items:center;justify-content:center;font-size:1.2rem;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.2);transition:transform .15s}
+.fab-btn:active{transform:scale(.91)}
+.fab-import{background:var(--blue);color:#fff}
+.fab-add{background:var(--green);color:#fff}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .modal{max-width:100%;border-radius:16px 16px 0 0;position:fixed;bottom:0;left:0;right:0;max-height:94vh}
+  .overlay{align-items:flex-end;padding:0}
+}
+@media(max-width:600px){
+  .app{padding:0 .75rem 5rem}
+  .stats-row{grid-template-columns:repeat(2,1fr)}
+  .logo-sub{display:none}
+  .mobile-fab{display:flex}
+  .sync-hint{display:none}
+  .topbar-actions .btn{font-size:.72rem;padding:.4rem .6rem;}
+  .form-actions{flex-direction:column-reverse}
+  .form-actions .btn{width:100%;justify-content:center}
+}
+@media(hover:none){
+  .btn,.search-input,select,.form-input,.count-input-big{font-size:16px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="logo">
+      <div class="logo-icon">📦</div>
+      <div>
+        <div class="logo-text">Inwentaryzacja</div>
+        <div class="logo-sub" id="topbarSub">Brak danych</div>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline btn-sm" onclick="openReport()">📊 Raport</button>
+      <button class="btn btn-primary btn-sm" onclick="openImport()">⬆️ Import Excel</button>
+    </div>
+  </div>
+</div>
+
+<div class="app">
+
+  <div class="progress-wrap">
+    <div class="progress-header">
+      <span class="progress-label">Postęp inwentaryzacji</span>
+      <span class="progress-count" id="progressCount">0 / 0</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card stat-blue"><div class="stat-value" id="statTotal">0</div><div class="stat-label">Pozycji</div></div>
+    <div class="stat-card stat-green"><div class="stat-value" id="statOk">0</div><div class="stat-label">Zgodnych</div></div>
+    <div class="stat-card stat-red"><div class="stat-value" id="statShort">0</div><div class="stat-label">Niedobór</div></div>
+    <div class="stat-card stat-yellow"><div class="stat-value" id="statOver">0</div><div class="stat-label">Nadwyżka</div></div>
+  </div>
+
+  <div class="sync-bar">
+    <span class="sync-label">Sync</span>
+    <button class="btn btn-outline btn-sm" onclick="exportJSON()">⬇️ Eksportuj JSON</button>
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('importJsonFile').click()">⬆️ Importuj JSON</button>
+    <button class="btn btn-outline btn-sm" onclick="exportExcel()">📊 Excel</button>
+    <input type="file" id="importJsonFile" accept=".json" style="display:none" onchange="importJSON(event)">
+    <span class="sync-hint">Przenoś dane między urządzeniami</span>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="search-input" id="searchInput" placeholder="Szukaj — kod, nazwa…" oninput="onSearch(this)">
+    </div>
+    <select class="filter-sel" id="filterSel" onchange="renderList()">
+      <option value="all">Wszystkie</option>
+      <option value="pending">Do sprawdzenia</option>
+      <option value="ok">Zgodne ✓</option>
+      <option value="short">Niedobór ↓</option>
+      <option value="over">Nadwyżka ↑</option>
+    </select>
+    <button class="btn btn-outline btn-sm" onclick="openAddItem()">＋ Dodaj</button>
+    <button class="btn btn-danger btn-sm" onclick="resetCounts()">↺ Reset</button>
+  </div>
+
+  <div class="item-list" id="itemList"></div>
+
+  <div class="mobile-fab">
+    <button class="fab-btn fab-import" onclick="openImport()">⬆️</button>
+    <button class="fab-btn fab-add" onclick="openAddItem()">＋</button>
+  </div>
+</div>
+
+<!-- ═══ DETAIL MODAL ═══ -->
+<div class="overlay" id="detailOverlay" onclick="overlayClick(event,'detailOverlay')">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-header">
+      <div style="min-width:0">
+        <div style="font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--text3)" id="det_code"></div>
+        <div class="modal-title" id="det_name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+      </div>
+      <div style="display:flex;gap:.4rem;align-items:center">
+        <button class="btn btn-outline btn-sm" onclick="openEditItem(currentDetailId)">✏️</button>
+        <button class="modal-close" onclick="closeModal('detailOverlay')">✕</button>
+      </div>
+    </div>
+    <div class="modal-body">
+
+      <!-- 3 PHOTO SLOTS -->
+      <div class="detail-photos" id="det_photos"></div>
+
+      <!-- INFO -->
+      <div class="detail-info" id="det_info"></div>
+
+      <!-- COUNTS -->
+      <div class="counts-section">
+        <div class="counts-header">
+          <span class="counts-title">Zliczone partie</span>
+          <span class="counts-total" id="det_total">0</span>
+        </div>
+        <div class="count-entries" id="det_entries"></div>
+        <div class="add-count-row">
+          <button class="btn btn-outline btn-sm btn-icon" onclick="adjustDetailCount(-1)" style="width:38px;height:42px;font-size:1.1rem">−</button>
+          <input type="number" class="count-input-big" id="det_input" placeholder="Wpisz ilość…" min="0" step="0.01">
+          <button class="btn btn-outline btn-sm btn-icon" onclick="adjustDetailCount(1)" style="width:38px;height:42px;font-size:1.1rem">＋</button>
+          <button class="btn btn-success" onclick="addCount()" style="height:42px;padding:.5rem 1rem">Dodaj</button>
+        </div>
+        <div id="det_diff_wrap"><div class="diff-summary diff-none">Brak zliczenia</div></div>
+        <div style="display:flex;gap:.5rem;margin-top:.85rem">
+          <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="addCountAndClose()">✅ Dodaj i zamknij</button>
+          <button class="btn btn-primary" style="flex:1;justify-content:center" onclick="closeModal('detailOverlay')">Zapisz i zamknij</button>
+        </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ═══ ADD/EDIT ITEM MODAL ═══ -->
+<div class="overlay" id="addOverlay" onclick="overlayClick(event,'addOverlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title" id="addModalTitle">Nowa pozycja</span>
+      <button class="modal-close" onclick="closeModal('addOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-field">
+        <label class="form-label">Kod</label>
+        <input type="text" class="form-input" id="f_code" placeholder="np. MAT-001">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Nazwa *</label>
+        <input type="text" class="form-input" id="f_name" placeholder="Nazwa materiału">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Stan systemowy (ilość)</label>
+        <input type="number" class="form-input" id="f_expected" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Jednostka</label>
+        <input type="text" class="form-input" id="f_unit" placeholder="np. szt, kg, m">
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" onclick="closeModal('addOverlay')">Anuluj</button>
+        <button class="btn btn-success" onclick="saveItem()">💾 Zapisz</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ IMPORT MODAL ═══ -->
+<div class="overlay" id="importOverlay" onclick="overlayClick(event,'importOverlay')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">⬆️ Import z Excel / CSV</span>
+      <button class="modal-close" onclick="closeModal('importOverlay')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="import-info">
+        Wyeksportuj z Excela: <strong>Plik → Zapisz jako → CSV UTF-8 (średniki)</strong><br>
+        Wymagane kolumny: <code>Kod</code> <code>Nazwa</code> <code>Ilość</code><br>
+        Separator: średnik <code>;</code> lub przecinek <code>,</code>
+      </div>
+      <div class="form-field">
+        <div class="csv-drop" id="csvDropArea">
+          <input type="file" id="csvFile" accept=".csv,.txt" onchange="previewCSV(event)">
+          <div id="csvPlaceholder"><div class="csv-drop-icon">📄</div><div class="csv-drop-label">Kliknij lub przeciągnij plik CSV</div></div>
+          <div id="csvPreview" style="display:none"></div>
+        </div>
+      </div>
+      <div id="csvMapWrap" style="display:none">
+        <div class="form-field"><label class="form-label">Kolumna Kod</label><select class="form-input" id="mapCode"></select></div>
+        <div class="form-field"><label class="form-label">Kolumna Nazwa</label><select class="form-input" id="mapName"></select></div>
+        <div class="form-field"><label class="form-label">Kolumna Stan systemowy (ilość)</label><select class="form-input" id="mapQty"></select></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn btn-outline" onclick="closeModal('importOverlay')">Anuluj</button>
+        <button class="btn btn-primary" id="importConfirmBtn" disabled onclick="confirmImport()">Importuj</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ REPORT MODAL ═══ -->
+<div class="overlay" id="reportOverlay" onclick="overlayClick(event,'reportOverlay')">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-header">
+      <span class="modal-title">📊 Raport inwentaryzacji</span>
+      <button class="modal-close" onclick="closeModal('reportOverlay')">✕</button>
+    </div>
+    <div class="modal-body" id="reportBody"></div>
+  </div>
+</div>
+
+<!-- PHOTO VIEWER -->
+<div class="overlay" id="photoOverlay" onclick="closeModal('photoOverlay')">
+  <img id="photoViewerImg" src="" alt="">
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+var db = JSON.parse(localStorage.getItem('inv_db') || '[]');
+var editingId = null;
+var currentDetailId = null;
+var csvParsed = null;
+var searchQuery = '';
+
+function saveDb(){ localStorage.setItem('inv_db', JSON.stringify(db)); }
+
+// INIT
+function init(){ renderList(); updateStats(); updateTopbar(); }
+
+function updateTopbar(){
+  var counted = db.filter(function(i){ return i.counts && i.counts.length > 0; }).length;
+  document.getElementById('topbarSub').textContent = db.length + ' pozycji · ' + counted + ' zliczonych';
+}
+
+// STATUS
+function getTotal(item){
+  if (!item.counts || item.counts.length === 0) return null;
+  return item.counts.reduce(function(s,c){ return s + c.val; }, 0);
+}
+
+function getStatus(item){
+  var total = getTotal(item);
+  if (total === null) return 'pending';
+  var exp = parseFloat(item.expected);
+  if (isNaN(exp)) return 'ok';
+  var diff = total - exp;
+  if (Math.abs(diff) < 0.0001) return 'ok';
+  if (diff < 0) return 'short';
+  return 'over';
+}
+
+// STATS
+function updateStats(){
+  var total = db.length;
+  var ok=0, short_=0, over=0, counted=0;
+  db.forEach(function(i){
+    var s = getStatus(i);
+    if (s !== 'pending') counted++;
+    if (s === 'ok') ok++;
+    else if (s === 'short') short_++;
+    else if (s === 'over') over++;
+  });
+  document.getElementById('statTotal').textContent = total;
+  document.getElementById('statOk').textContent = ok;
+  document.getElementById('statShort').textContent = short_;
+  document.getElementById('statOver').textContent = over;
+  document.getElementById('progressCount').textContent = counted + ' / ' + total;
+  document.getElementById('progressFill').style.width = total > 0 ? (counted/total*100).toFixed(1)+'%' : '0%';
+  updateTopbar();
+}
+
+// FILTER / SEARCH / RENDER
+function onSearch(el){ searchQuery = el.value.trim().toLowerCase(); renderList(); }
+
+function getFiltered(){
+  var filter = document.getElementById('filterSel').value;
+  var list = db.slice();
+  if (filter !== 'all') list = list.filter(function(i){ return getStatus(i) === filter; });
+  if (searchQuery) list = list.filter(function(i){
+    return (i.code||'').toLowerCase().indexOf(searchQuery) > -1
+        || (i.name||'').toLowerCase().indexOf(searchQuery) > -1;
+  });
+  return list;
+}
+
+function fmtNum(n){ return n%1===0 ? n.toString() : n.toFixed(2); }
+
+function renderList(){
+  var list = getFiltered();
+  var el = document.getElementById('itemList');
+  if (list.length === 0){
+    var t = db.length===0 ? 'Brak danych' : 'Brak wyników';
+    var s = db.length===0 ? 'Zaimportuj plik Excel lub dodaj pozycje ręcznie' : 'Zmień filtry lub wyszukiwanie';
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div><div class="empty-title">'+t+'</div><p class="empty-sub">'+s+'</p></div>';
+    return;
+  }
+  el.innerHTML = list.map(renderRow).join('');
+}
+
+function renderRow(item){
+  var status = getStatus(item);
+  var total = getTotal(item);
+  var thumb = (item.photos && item.photos[0])
+    ? '<img src="'+item.photos[0]+'" alt="">'
+    : '<span>📦</span>';
+
+  var expText = (item.expected!==''&&item.expected!==null&&item.expected!==undefined)
+    ? 'Sys.: <span class="exp">'+fmtNum(parseFloat(item.expected))+(item.unit?' '+item.unit:'')+'</span>'
+    : 'Brak wzorca';
+  var partieCount = item.counts && item.counts.length > 0
+    ? '· '+item.counts.length+' '+(item.counts.length===1?'partia':item.counts.length<5?'partie':'partii') : '';
+
+  var expVal = (item.expected!==''&&item.expected!==null&&item.expected!==undefined)
+    ? fmtNum(parseFloat(item.expected))+(item.unit?' '+item.unit:'')
+    : '—';
+
+  // Stan rzeczywisty
+  var pillClass = 'counted-pending', pillText = '—';
+  if (total !== null){
+    pillText = fmtNum(total)+(item.unit?' '+item.unit:'');
+    pillClass = status==='ok'?'counted-ok': status==='short'?'counted-short': status==='over'?'counted-over':'counted-ok';
+  }
+
+  // Różnica
+  var diffRow = '';
+  if (total !== null && item.expected!==''&&item.expected!==null&&item.expected!==undefined){
+    var d = total - parseFloat(item.expected);
+    var diffVal, diffCls, diffPfx;
+    if (Math.abs(d) < 0.0001){
+      diffVal='✓'; diffCls=''; diffPfx='';
+    } else if (d < 0){
+      diffVal=fmtNum(Math.abs(d))+(item.unit?' '+item.unit:''); diffCls='diff-short'; diffPfx='▼ ';
+    } else {
+      diffVal=fmtNum(d)+(item.unit?' '+item.unit:''); diffCls='diff-over'; diffPfx='▲ +';
+    }
+    diffRow = '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.25rem">'
+      + '<span style="font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)">Różn.:</span>'
+      + '<span class="diff-pill '+diffCls+'">'+diffPfx+diffVal+'</span>'
+      + '</div>';
+  }
+
+  var lbl = 'font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text3)';
+
+  return '<div class="item-row s-'+status+'" onclick="openDetail('+item.id+')">'
+    + '<div class="row-thumb">'+thumb+'</div>'
+    + '<div class="row-body">'
+    + '<div class="row-code">'+esc(item.code||'')+'</div>'
+    + '<div class="row-name">'+esc(item.name)+'</div>'
+    + '<div class="row-meta" style="color:var(--text3)">'+partieCount+'</div>'
+    + '</div>'
+    + '<div class="row-right" style="gap:.3rem">'
+    // Stan systemowy — na górze
+    + '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.25rem;padding-bottom:.25rem;border-bottom:1px solid var(--border)">'
+    + '<span style="'+lbl+'">Sys.:</span>'
+    + '<span style="font-family:JetBrains Mono,monospace;font-size:.82rem;font-weight:600;color:var(--text2)">'+expVal+'</span>'
+    + '</div>'
+    // Stan rzeczywisty
+    + '<div style="display:flex;align-items:center;justify-content:flex-end;gap:.25rem">'
+    + '<span style="'+lbl+'">Rzecz.:</span>'
+    + '<span class="counted-pill '+pillClass+'">'+pillText+'</span>'
+    + '</div>'
+    // Różnica
+    + diffRow
+    + '</div>'
+    + '<div style="padding:.5rem .5rem .5rem .25rem;color:var(--text3);font-size:.8rem">›</div>'
+    + '</div>';
+}
+
+// OPEN DETAIL
+function openDetail(id){
+  var item = db.find(function(i){ return i.id===id; });
+  if (!item) return;
+  currentDetailId = id;
+  if (!item.photos) item.photos = [null, null, null];
+  while (item.photos.length < 3) item.photos.push(null);
+  if (!item.counts) item.counts = [];
+  renderDetail(item);
+  showOverlay('detailOverlay');
+  setTimeout(function(){ document.getElementById('det_input').focus(); }, 300);
+}
+
+function renderDetail(item){
+  document.getElementById('det_code').textContent = item.code || '';
+  document.getElementById('det_name').textContent = item.name;
+
+  // Photos
+  var photosHtml = '';
+  for (var i = 0; i < 3; i++) {
+    var p = item.photos[i];
+    var slotIdx = i;
+    if (p) {
+      photosHtml += '<div class="detail-photo-slot" style="border-style:solid;border-color:var(--border)">'
+        + '<img src="'+p+'" onclick="viewPhoto(\''+p+'\')">'
+        + '<div class="slot-desc">Zdjęcie '+(i+1)+'</div>'
+        + '<button class="slot-remove" onclick="removeSlotPhoto('+slotIdx+',event)">✕</button>'
+        + '</div>';
+    } else {
+      photosHtml += '<div class="detail-photo-slot" style="position:relative">'
+        + '<input type="file" accept="image/*" onchange="handleSlotPhoto(event,'+slotIdx+')" style="position:absolute;inset:0;opacity:0;cursor:pointer;z-index:2">'
+        + '<span class="slot-icon">📷</span>'
+        + '<span class="slot-label">Zdjęcie '+(i+1)+'</span>'
+        + '</div>';
+    }
+  }
+  document.getElementById('det_photos').innerHTML = photosHtml;
+
+  // Info
+  var exp = (item.expected!==''&&item.expected!==null&&item.expected!==undefined) ? parseFloat(item.expected) : null;
+  document.getElementById('det_info').innerHTML = ''
+    + '<div><div class="dinfo-label">Kod</div><div class="dinfo-value" style="font-size:.85rem">'+(item.code||'—')+'</div></div>'
+    + '<div><div class="dinfo-label">Jednostka</div><div class="dinfo-value">'+(item.unit||'—')+'</div></div>'
+    + '<div class="dinfo-full"><div class="dinfo-label">Stan systemowy</div><div class="dinfo-value">'+(exp!==null?fmtNum(exp)+(item.unit?' '+item.unit:''):'Brak wzorca')+'</div></div>';
+
+  // Counts
+  renderCounts(item);
+}
+
+function renderCounts(item){
+  var total = getTotal(item);
+  document.getElementById('det_total').textContent = total !== null ? fmtNum(total)+(item.unit?' '+item.unit:'') : '0';
+
+  var entriesHtml = '';
+  if (item.counts && item.counts.length > 0){
+    item.counts.forEach(function(c, idx){
+      entriesHtml += '<div class="count-entry">'
+        + '<span class="count-entry-time">Partia '+(idx+1)+(c.time?' · '+c.time:'')+'</span>'
+        + '<span class="count-entry-val">'+fmtNum(c.val)+(item.unit?' '+item.unit:'')+'</span>'
+        + '<button class="count-entry-del" onclick="removeCount('+idx+',event)">✕</button>'
+        + '</div>';
+    });
+  } else {
+    entriesHtml = '<div style="font-size:.82rem;color:var(--text3);padding:.4rem 0">Brak zliczonych partii</div>';
+  }
+  document.getElementById('det_entries').innerHTML = entriesHtml;
+
+  // Diff summary
+  var exp = (item.expected!==''&&item.expected!==null&&item.expected!==undefined) ? parseFloat(item.expected) : null;
+  var diffHtml = '';
+  if (total === null) {
+    diffHtml = '<div class="diff-summary diff-none">Brak zliczenia</div>';
+  } else if (exp === null) {
+    diffHtml = '<div class="diff-summary diff-none">Zliczono: '+fmtNum(total)+(item.unit?' '+item.unit:'')+' — brak stanu wzorcowego</div>';
+  } else {
+    var d = total - exp;
+    if (Math.abs(d) < 0.0001) {
+      diffHtml = '<div class="diff-summary diff-ok">✓ Zgodne — stan: '+fmtNum(total)+(item.unit?' '+item.unit:'')+'</div>';
+    } else if (d < 0) {
+      diffHtml = '<div class="diff-summary diff-s">▼ Niedobór: '+fmtNum(Math.abs(d))+(item.unit?' '+item.unit:'')+'  (rzeczywisty: '+fmtNum(total)+' / systemowy: '+fmtNum(exp)+')</div>';
+    } else {
+      diffHtml = '<div class="diff-summary diff-ov">▲ Nadwyżka: +'+fmtNum(d)+(item.unit?' '+item.unit:'')+'  (rzeczywisty: '+fmtNum(total)+' / systemowy: '+fmtNum(exp)+')</div>';
+    }
+  }
+  document.getElementById('det_diff_wrap').innerHTML = diffHtml;
+}
+
+function adjustDetailCount(delta){
+  var inp = document.getElementById('det_input');
+  var cur = parseFloat(inp.value) || 0;
+  inp.value = Math.max(0, cur + delta);
+}
+
+function addCountAndClose(){
+  var inp = document.getElementById('det_input');
+  if (inp && inp.value !== '') {
+    addCount();
+  }
+  closeModal('detailOverlay');
+  renderList();
+}
+
+function addCount(){
+  var inp = document.getElementById('det_input');
+  var val = parseFloat(inp.value);
+  if (isNaN(val) || val < 0){ showToast('Wpisz prawidłową ilość', 'error'); return; }
+  var item = db.find(function(i){ return i.id === currentDetailId; });
+  if (!item) return;
+  if (!item.counts) item.counts = [];
+  var now = new Date();
+  var date = now.getDate().toString().padStart(2,'0')+'.'+(now.getMonth()+1).toString().padStart(2,'0')+'.'+now.getFullYear();
+  var time = now.getHours().toString().padStart(2,'0')+':'+now.getMinutes().toString().padStart(2,'0');
+  item.counts.push({val:val, time:date+' '+time});
+  inp.value = '';
+  saveDb();
+  updateStats();
+  renderCounts(item);
+  renderList();
+  showToast('Dodano partię: '+fmtNum(val)+(item.unit?' '+item.unit:''), 'success');
+}
+
+function removeCount(idx, e){
+  if (e) e.stopPropagation();
+  var item = db.find(function(i){ return i.id === currentDetailId; });
+  if (!item || !item.counts) return;
+  item.counts.splice(idx, 1);
+  saveDb();
+  updateStats();
+  renderCounts(item);
+  renderList();
+}
+
+// SLOT PHOTOS
+function handleSlotPhoto(event, slotIdx){
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    compressImage(e.target.result, 700, 0.82, function(compressed){
+      var item = db.find(function(i){ return i.id === currentDetailId; });
+      if (!item) return;
+      if (!item.photos) item.photos = [null,null,null];
+      item.photos[slotIdx] = compressed;
+      saveDb();
+      renderDetail(item);
+      renderList();
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeSlotPhoto(slotIdx, e){
+  if (e) e.stopPropagation();
+  var item = db.find(function(i){ return i.id === currentDetailId; });
+  if (!item) return;
+  item.photos[slotIdx] = null;
+  saveDb();
+  renderDetail(item);
+  renderList();
+}
+
+function viewPhoto(src){
+  document.getElementById('photoViewerImg').src = src;
+  showOverlay('photoOverlay');
+}
+
+// ADD / EDIT
+function openAddItem(){
+  editingId = null;
+  document.getElementById('addModalTitle').textContent = 'Nowa pozycja';
+  document.getElementById('f_code').value = '';
+  document.getElementById('f_name').value = '';
+  document.getElementById('f_expected').value = '';
+  document.getElementById('f_unit').value = '';
+  showOverlay('addOverlay');
+}
+
+function openEditItem(id){
+  var item = db.find(function(i){ return i.id===id; });
+  if (!item) return;
+  editingId = id;
+  document.getElementById('addModalTitle').textContent = 'Edytuj pozycję';
+  document.getElementById('f_code').value = item.code||'';
+  document.getElementById('f_name').value = item.name||'';
+  document.getElementById('f_expected').value = item.expected||'';
+  document.getElementById('f_unit').value = item.unit||'';
+  showOverlay('addOverlay');
+}
+
+function saveItem(){
+  var name = document.getElementById('f_name').value.trim();
+  if (!name){ showToast('Wpisz nazwę!', 'error'); return; }
+  if (editingId){
+    var item = db.find(function(i){ return i.id===editingId; });
+    if (item){
+      item.code = document.getElementById('f_code').value.trim();
+      item.name = name;
+      item.expected = document.getElementById('f_expected').value.trim();
+      item.unit = document.getElementById('f_unit').value.trim();
+      showToast('Zaktualizowano', 'success');
+    }
+  } else {
+    db.push({
+      id: Date.now(),
+      code: document.getElementById('f_code').value.trim(),
+      name: name,
+      expected: document.getElementById('f_expected').value.trim(),
+      unit: document.getElementById('f_unit').value.trim(),
+      photos: [null,null,null],
+      counts: []
+    });
+    showToast('Dodano pozycję', 'success');
+  }
+  saveDb();
+  closeModal('addOverlay');
+  renderList();
+  updateStats();
+}
+
+function deleteItem(id){
+  if (!confirm('Usunąć tę pozycję?')) return;
+  db = db.filter(function(i){ return i.id!==id; });
+  saveDb(); renderList(); updateStats();
+  showToast('Usunięto', '');
+}
+
+function resetCounts(){
+  var counted = db.filter(function(i){ return i.counts && i.counts.length>0; }).length;
+  if (!counted){ showToast('Brak zliczonych pozycji',''); return; }
+  if (!confirm('Wyczyścić wszystkie zliczone ilości ('+counted+' pozycji)?')) return;
+  db.forEach(function(i){ i.counts = []; });
+  saveDb(); renderList(); updateStats();
+  showToast('Zresetowano '+counted+' pozycji','');
+}
+
+// CSV IMPORT
+function openImport(){
+  document.getElementById('csvFile').value = '';
+  document.getElementById('csvPlaceholder').style.display = 'block';
+  document.getElementById('csvPreview').style.display = 'none';
+  document.getElementById('csvMapWrap').style.display = 'none';
+  document.getElementById('importConfirmBtn').disabled = true;
+  csvParsed = null;
+  showOverlay('importOverlay');
+}
+
+function parseCSV(text){
+  var lines = text.trim().split(/\r?\n/);
+  if (lines.length < 2) return null;
+  var sep = lines[0].indexOf(';') > -1 ? ';' : ',';
+  var headers = lines[0].split(sep).map(function(h){ return h.trim().replace(/^["']|["']$/g,''); });
+  var rows = [];
+  for (var i=1; i<lines.length; i++){
+    if (!lines[i].trim()) continue;
+    var cols = lines[i].split(sep).map(function(c){ return c.trim().replace(/^["']|["']$/g,''); });
+    var row = {};
+    headers.forEach(function(h,j){ row[h] = cols[j]||''; });
+    rows.push(row);
+  }
+  return {headers:headers, rows:rows};
+}
+
+function previewCSV(event){
+  var file = event.target.files[0];
+  if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    csvParsed = parseCSV(e.target.result);
+    if (!csvParsed||!csvParsed.rows.length){ showToast('Nie można odczytać pliku','error'); return; }
+    var prev = document.getElementById('csvPreview');
+    var html = '<div class="col-preview">'
+      + '<div><strong>Kolumny:</strong> '+csvParsed.headers.join(', ')+'</div>'
+      + '<div><strong>Wierszy:</strong> '+csvParsed.rows.length+'</div>';
+    csvParsed.rows.slice(0,2).forEach(function(r,i){
+      html += '<div>Wiersz '+(i+1)+': '+csvParsed.headers.map(function(h){ return h+': '+r[h]; }).join(' | ')+'</div>';
+    });
+    html += '</div>';
+    prev.innerHTML = html;
+    prev.style.display = 'block';
+    document.getElementById('csvPlaceholder').style.display = 'none';
+    var sels = ['mapCode','mapName','mapQty'];
+    var guess = {mapCode:'kod',mapName:'nazwa',mapQty:'ilo'};
+    sels.forEach(function(sid){
+      var sel = document.getElementById(sid);
+      sel.innerHTML = '<option value="">— wybierz —</option>'+csvParsed.headers.map(function(h){
+        return '<option value="'+esc(h)+'">'+esc(h)+'</option>';
+      }).join('');
+      csvParsed.headers.forEach(function(h){ if (h.toLowerCase().indexOf(guess[sid])>-1) sel.value=h; });
+    });
+    document.getElementById('csvMapWrap').style.display = 'block';
+    document.getElementById('importConfirmBtn').disabled = false;
+  };
+  reader.readAsText(file,'UTF-8');
+}
+
+function confirmImport(){
+  if (!csvParsed) return;
+  var cCode = document.getElementById('mapCode').value;
+  var cName = document.getElementById('mapName').value;
+  var cQty  = document.getElementById('mapQty').value;
+  if (!cName){ showToast('Wybierz kolumnę Nazwa','error'); return; }
+  var newItems = csvParsed.rows.map(function(r,i){
+    return { id:Date.now()+i, code:cCode?(r[cCode]||''):'', name:cName?(r[cName]||'?'):'?',
+      expected:cQty?(r[cQty]||''):'', unit:'', photos:[null,null,null], counts:[] };
+  }).filter(function(i){ return i.name && i.name!=='?'; });
+
+  var replace = db.length===0 || confirm('Importujesz '+newItems.length+' pozycji.\nOK = ZASTĄP · Anuluj = DOŁĄCZ');
+  if (replace){
+    var photoMap = {};
+    db.forEach(function(i){ if(i.code&&i.photos) photoMap[i.code]=i.photos; });
+    db = newItems.map(function(i){ if(i.code&&photoMap[i.code]) i.photos=photoMap[i.code]; return i; });
+    showToast('Zaimportowano '+db.length+' pozycji','success');
+  } else {
+    var existing = {};
+    db.forEach(function(i){ if(i.code) existing[i.code]=true; });
+    var added = newItems.filter(function(i){ return !i.code||!existing[i.code]; });
+    db = db.concat(added);
+    showToast('Dołączono '+added.length+' pozycji','success');
+  }
+  saveDb(); closeModal('importOverlay'); renderList(); updateStats();
+}
+
+// EXPORT JSON
+function exportJSON(){
+  var blob = new Blob([JSON.stringify({app:'Inwentaryzacja',version:2,exported:new Date().toISOString(),items:db},null,2)],{type:'application/json'});
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'magazyn_'+new Date().toISOString().slice(0,10)+'.json'; a.click();
+  showToast('Wyeksportowano '+db.length+' pozycji','success');
+}
+
+function importJSON(event){
+  var file = event.target.files[0]; if (!file) return;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      var data = JSON.parse(e.target.result);
+      var items = Array.isArray(data)?data:(data.items||[]);
+      if (!items.length) throw new Error('Brak danych');
+      // ensure new fields
+      items.forEach(function(i){
+        if (!i.photos) i.photos=[null,null,null];
+        while(i.photos.length<3) i.photos.push(null);
+        if (!i.counts) i.counts=[];
+        // migrate old counted field
+        if (i.counted!==undefined && i.counted!==null && i.counted!=='' && i.counts.length===0){
+          i.counts=[{val:parseFloat(i.counted),time:''}];
+          delete i.counted;
+        }
+      });
+      if (db.length>0&&!confirm('Importujesz '+items.length+' pozycji.\nOK = ZASTĄP · Anuluj = DOŁĄCZ')){ 
+        var ids={}; db.forEach(function(i){ ids[i.id]=true; });
+        db=db.concat(items.filter(function(i){ return !ids[i.id]; }));
+      } else { db=items; }
+      saveDb(); renderList(); updateStats();
+      showToast('Zaimportowano '+items.length+' pozycji','success');
+    } catch(err){ showToast('Błąd importu: '+err.message,'error'); }
+    event.target.value='';
+  };
+  reader.readAsText(file);
+}
+
+// EXPORT EXCEL
+function exportExcel(){
+  if (!db.length){ showToast('Brak danych!','error'); return; }
+  var headers = ['Kod','Nazwa','Stan systemowy','Stan rzeczywisty','Różnica','Status','Jednostka','Liczba partii'];
+  function ec(v){ var s=String(v===null||v===undefined?'':v); if(s.indexOf(';')>-1||s.indexOf('"')>-1) return '"'+s.replace(/"/g,'""')+'"'; return s; }
+  var rows = db.map(function(i){
+    var exp = (i.expected!==''&&i.expected!==null&&i.expected!==undefined)?parseFloat(i.expected):null;
+    var total = getTotal(i);
+    var diff = (exp!==null&&total!==null)?(total-exp):null;
+    var statusMap = {pending:'Do sprawdzenia',ok:'Zgodne',short:'Niedobór',over:'Nadwyżka'};
+    return [i.code||'',i.name||'',exp!==null?exp:'',total!==null?total:'',diff!==null?diff:'',statusMap[getStatus(i)]||'',i.unit||'',(i.counts||[]).length];
+  });
+  var csv = [headers].concat(rows).map(function(r){ return r.map(ec).join(';'); }).join('\r\n');
+  var blob = new Blob(['\uFEFF'+csv],{type:'text/csv;charset=utf-8;'});
+  var a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+  a.download='raport_inwentaryzacja_'+new Date().toISOString().slice(0,10)+'.csv'; a.click();
+  showToast('Raport wyeksportowany','success');
+}
+
+// REPORT
+function openReport(){
+  var ok=[],short_=[],over=[],pending=[];
+  db.forEach(function(i){
+    var s=getStatus(i); var total=getTotal(i);
+    var exp=(i.expected!==''&&i.expected!==null)?parseFloat(i.expected):null;
+    var d=(total!==null&&exp!==null)?total-exp:null;
+    if(s==='ok') ok.push(i);
+    else if(s==='short') short_.push({i:i,d:d});
+    else if(s==='over') over.push({i:i,d:d});
+    else pending.push(i);
+  });
+  short_.sort(function(a,b){return a.d-b.d;});
+  over.sort(function(a,b){return b.d-a.d;});
+
+  var html = '<div class="report-grid">'
+    +'<div class="rep-card rep-ok"><div class="rep-num">'+ok.length+'</div><div class="rep-lbl">Zgodne</div></div>'
+    +'<div class="rep-card rep-s"><div class="rep-num">'+short_.length+'</div><div class="rep-lbl">Niedobór</div></div>'
+    +'<div class="rep-card rep-ov"><div class="rep-num">'+over.length+'</div><div class="rep-lbl">Nadwyżka</div></div>'
+    +'</div>';
+
+  function repRow(item, d, bg, col, prefix){
+    return '<div class="rep-row" style="background:'+bg+';border:1px solid rgba(0,0,0,.06)">'
+      +'<div style="min-width:0"><span style="font-family:JetBrains Mono,monospace;font-size:.7rem;color:var(--text3)">'+esc(item.code||'')+'</span> '+esc(item.name)+'</div>'
+      +'<div style="font-family:JetBrains Mono,monospace;font-weight:700;color:'+col+';flex-shrink:0;margin-left:.75rem">'+prefix+fmtNum(Math.abs(d))+(item.unit?' '+item.unit:'')+'</div>'
+      +'</div>';
+  }
+  if (short_.length>0){ html+='<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin:1rem 0 .4rem">🔴 Niedobory</div>'; short_.forEach(function(x){html+=repRow(x.i,x.d,'var(--red-dim)','var(--red)','▼ ');}); }
+  if (over.length>0){ html+='<div style="font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--yellow);margin:1rem 0 .4rem">🟡 Nadwyżki</div>'; over.forEach(function(x){html+=repRow(x.i,x.d,'var(--yellow-dim)','var(--yellow)','▲ +');}); }
+  if (pending.length>0){ html+='<div style="font-size:.72rem;color:var(--text3);margin:1rem 0 .4rem">⬜ Niezliczone: '+pending.length+' pozycji</div>'; }
+  if (!db.length||db.filter(function(i){return getStatus(i)!=='pending';}).length===0) html+='<div class="empty-state" style="padding:1.5rem"><div class="empty-icon">📋</div><div class="empty-title">Brak zliczonych pozycji</div></div>';
+
+  html+='<div class="form-actions"><button class="btn btn-outline" onclick="closeModal(\'reportOverlay\')">Zamknij</button><button class="btn btn-success" onclick="exportExcel()">📊 Eksportuj Excel</button></div>';
+  document.getElementById('reportBody').innerHTML = html;
+  showOverlay('reportOverlay');
+}
+
+// UTILS
+function compressImage(dataUrl,maxW,q,cb){
+  var img=new Image(); img.onload=function(){
+    var c=document.createElement('canvas'),w=img.width,h=img.height;
+    if(w>maxW){h=Math.round(h*maxW/w);w=maxW;} c.width=w;c.height=h;
+    c.getContext('2d').drawImage(img,0,0,w,h); cb(c.toDataURL('image/jpeg',q));
+  }; img.src=dataUrl;
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+var overlayOpenTime = {};
+
+function showOverlay(id){
+  document.getElementById(id).classList.add('show');
+  overlayOpenTime[id] = Date.now();
+}
+
+function closeModal(id){
+  document.getElementById(id).classList.remove('show');
+}
+
+function overlayClick(e, id){
+  if(e.target.id !== id) return;
+  if(Date.now() - (overlayOpenTime[id]||0) < 350) return; // ghost click guard
+  closeModal(id);
+}
+var toastT;
+function showToast(msg,type){ var t=document.getElementById('toast'); t.textContent=msg; t.className='toast show'+(type?' '+type:''); clearTimeout(toastT); toastT=setTimeout(function(){t.className='toast';},3000); }
+document.addEventListener('keydown',function(e){ if(e.key==='Escape') ['detailOverlay','addOverlay','importOverlay','reportOverlay','photoOverlay'].forEach(function(id){document.getElementById(id).classList.remove('show');}); });
+
+// Enter in count input = add
+document.addEventListener('DOMContentLoaded', function(){
+  var inp = document.getElementById('det_input');
+  if (inp) inp.addEventListener('keydown', function(e){ if(e.key==='Enter') addCount(); });
+});
+
+init();
+</script>
+</body>
+</html>

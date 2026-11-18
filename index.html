@@ -434,13 +434,86 @@ select.filter-sel:focus{border-color:var(--blue)}
 <div class="toast" id="toast"></div>
 
 <script>
-var db = JSON.parse(localStorage.getItem('inv_db') || '[]');
+var db = [];
+try { db = JSON.parse(localStorage.getItem('inv_db') || '[]'); } catch(e){ db = []; }
+db.forEach(function(i){ if(!i.photos) i.photos=[null,null,null]; while(i.photos.length<3) i.photos.push(null); if(!i.counts) i.counts=[]; });
 var editingId = null;
 var currentDetailId = null;
 var csvParsed = null;
 var searchQuery = '';
 
-function saveDb(){ localStorage.setItem('inv_db', JSON.stringify(db)); }
+// ===== STORAGE: dane tekstowe -> localStorage (male), zdjecia -> IndexedDB (duzy limit) =====
+var idb = null;
+var photoSaved = {};            // klucz 'id:slot' -> ostatnio zapisany obraz w IndexedDB
+var saveWarnAt = 0;
+function warnSave(msg){ if (Date.now()-saveWarnAt>4000){ saveWarnAt=Date.now(); showToast(msg,'error'); } }
+
+function writeLite(){
+  var lite = db.map(function(i){
+    var c = {}; for (var k in i) c[k] = i[k];
+    c.photos = [null,null,null];
+    return c;
+  });
+  try { localStorage.setItem('inv_db', JSON.stringify(lite)); return true; }
+  catch(e){ warnSave('⚠ NIE ZAPISANO danych! Zrób Eksport JSON'); return false; }
+}
+
+function saveDb(){
+  if (!idb){   // brak IndexedDB - stary tryb, ale z obsluga bledu
+    try { localStorage.setItem('inv_db', JSON.stringify(db)); }
+    catch(e){ warnSave('⚠ Brak miejsca – zdjęcia i ilości NIE zapisane! Zrób Eksport JSON'); }
+    return;
+  }
+  var ops = [], cur = {};
+  db.forEach(function(it){
+    (it.photos||[]).forEach(function(p, s){
+      if (!p) return;
+      var key = it.id+':'+s; cur[key] = 1;
+      if (photoSaved[key] !== p) ops.push({k:key, v:p});
+    });
+  });
+  var dels = Object.keys(photoSaved).filter(function(k){ return !cur[k]; });
+  if (!ops.length && !dels.length){ writeLite(); return; }
+  try {
+    var tx = idb.transaction('p','readwrite'), st = tx.objectStore('p');
+    ops.forEach(function(o){ st.put(o.v, o.k); });
+    dels.forEach(function(k){ st.delete(k); });
+    tx.oncomplete = function(){
+      ops.forEach(function(o){ photoSaved[o.k] = o.v; });
+      dels.forEach(function(k){ delete photoSaved[k]; });
+      writeLite();
+    };
+    tx.onerror = tx.onabort = function(){ warnSave('⚠ Zdjęcia NIE zapisane! Zrób Eksport JSON'); };
+  } catch(e){ warnSave('⚠ Zdjęcia NIE zapisane! Zrób Eksport JSON'); }
+}
+
+function idbInit(){
+  if (!window.indexedDB) return;
+  var req;
+  try { req = indexedDB.open('inv_photos', 1); } catch(e){ return; }
+  req.onupgradeneeded = function(){ req.result.createObjectStore('p'); };
+  req.onerror = function(){ warnSave('⚠ Brak IndexedDB – zdjęcia mogą się nie zapisać'); };
+  req.onsuccess = function(){
+    idb = req.result;
+    var found = {};
+    var cur = idb.transaction('p','readonly').objectStore('p').openCursor();
+    cur.onsuccess = function(){
+      var c = cur.result;
+      if (c){ found[c.key] = c.value; c.continue(); return; }
+      db.forEach(function(it){
+        if (!it.photos) it.photos = [null,null,null];
+        for (var s=0; s<3; s++){
+          var key = it.id+':'+s;
+          if (!it.photos[s] && found[key]){ it.photos[s] = found[key]; photoSaved[key] = found[key]; }
+          else if (it.photos[s] && found[key] === it.photos[s]) photoSaved[key] = found[key];
+        }
+      });
+      renderList(); updateStats();
+      saveDb();   // migracja starych zdjec z localStorage do IndexedDB + odchudzenie localStorage
+    };
+  };
+  if (navigator.storage && navigator.storage.persist) { try { navigator.storage.persist(); } catch(e){} }
+}
 
 // INIT
 function init(){ renderList(); updateStats(); updateTopbar(); }
@@ -722,7 +795,7 @@ function handleSlotPhoto(event, slotIdx){
   if (!file) return;
   var reader = new FileReader();
   reader.onload = function(e){
-    compressImage(e.target.result, 700, 0.82, function(compressed){
+    compressImage(e.target.result, 700, 0.72, function(compressed){
       var item = db.find(function(i){ return i.id === currentDetailId; });
       if (!item) return;
       if (!item.photos) item.photos = [null,null,null];
@@ -1037,6 +1110,7 @@ document.addEventListener('DOMContentLoaded', function(){
 });
 
 init();
+idbInit();
 </script>
 </body>
 </html>

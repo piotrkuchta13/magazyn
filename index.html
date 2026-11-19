@@ -532,7 +532,7 @@ function getTotal(item){
 function getStatus(item){
   var total = getTotal(item);
   if (total === null) return 'pending';
-  var exp = parseFloat(item.expected);
+  var exp = parseQty(item.expected);
   if (isNaN(exp)) return 'ok';
   var diff = total - exp;
   if (Math.abs(diff) < 0.0001) return 'ok';
@@ -574,6 +574,7 @@ function getFiltered(){
   return list;
 }
 
+function parseQty(v){ return parseFloat(String(v===null||v===undefined?'':v).replace(/\s/g,'').replace(',','.')); }
 function fmtNum(n){ return n%1===0 ? n.toString() : n.toFixed(2); }
 
 function renderList(){
@@ -596,13 +597,13 @@ function renderRow(item){
     : '<span>📦</span>';
 
   var expText = (item.expected!==''&&item.expected!==null&&item.expected!==undefined)
-    ? 'Sys.: <span class="exp">'+fmtNum(parseFloat(item.expected))+(item.unit?' '+item.unit:'')+'</span>'
+    ? 'Sys.: <span class="exp">'+fmtNum(parseQty(item.expected))+(item.unit?' '+item.unit:'')+'</span>'
     : 'Brak wzorca';
   var partieCount = item.counts && item.counts.length > 0
     ? '· '+item.counts.length+' '+(item.counts.length===1?'partia':item.counts.length<5?'partie':'partii') : '';
 
   var expVal = (item.expected!==''&&item.expected!==null&&item.expected!==undefined)
-    ? fmtNum(parseFloat(item.expected))+(item.unit?' '+item.unit:'')
+    ? fmtNum(parseQty(item.expected))+(item.unit?' '+item.unit:'')
     : '—';
 
   // Stan rzeczywisty
@@ -615,7 +616,7 @@ function renderRow(item){
   // Różnica
   var diffRow = '';
   if (total !== null && item.expected!==''&&item.expected!==null&&item.expected!==undefined){
-    var d = total - parseFloat(item.expected);
+    var d = total - parseQty(item.expected);
     var diffVal, diffCls, diffPfx;
     if (Math.abs(d) < 0.0001){
       diffVal='✓'; diffCls=''; diffPfx='';
@@ -696,7 +697,7 @@ function renderDetail(item){
   document.getElementById('det_photos').innerHTML = photosHtml;
 
   // Info
-  var exp = (item.expected!==''&&item.expected!==null&&item.expected!==undefined) ? parseFloat(item.expected) : null;
+  var exp = (item.expected!==''&&item.expected!==null&&item.expected!==undefined) ? parseQty(item.expected) : null;
   document.getElementById('det_info').innerHTML = ''
     + '<div><div class="dinfo-label">Kod</div><div class="dinfo-value" style="font-size:.85rem">'+(item.code||'—')+'</div></div>'
     + '<div><div class="dinfo-label">Jednostka</div><div class="dinfo-value">'+(item.unit||'—')+'</div></div>'
@@ -725,7 +726,7 @@ function renderCounts(item){
   document.getElementById('det_entries').innerHTML = entriesHtml;
 
   // Diff summary
-  var exp = (item.expected!==''&&item.expected!==null&&item.expected!==undefined) ? parseFloat(item.expected) : null;
+  var exp = (item.expected!==''&&item.expected!==null&&item.expected!==undefined) ? parseQty(item.expected) : null;
   var diffHtml = '';
   if (total === null) {
     diffHtml = '<div class="diff-summary diff-none">Brak zliczenia</div>';
@@ -1024,7 +1025,7 @@ function exportExcel(){
   var headers = ['Kod','Nazwa','Stan systemowy','Stan rzeczywisty','Różnica','Status','Jednostka','Liczba partii'];
   function ec(v){ var s=String(v===null||v===undefined?'':v); if(s.indexOf(';')>-1||s.indexOf('"')>-1) return '"'+s.replace(/"/g,'""')+'"'; return s; }
   var rows = db.map(function(i){
-    var exp = (i.expected!==''&&i.expected!==null&&i.expected!==undefined)?parseFloat(i.expected):null;
+    var exp = (i.expected!==''&&i.expected!==null&&i.expected!==undefined)?parseQty(i.expected):null;
     var total = getTotal(i);
     var diff = (exp!==null&&total!==null)?(total-exp):null;
     var statusMap = {pending:'Do sprawdzenia',ok:'Zgodne',short:'Niedobór',over:'Nadwyżka'};
@@ -1042,7 +1043,7 @@ function openReport(){
   var ok=[],short_=[],over=[],pending=[];
   db.forEach(function(i){
     var s=getStatus(i); var total=getTotal(i);
-    var exp=(i.expected!==''&&i.expected!==null)?parseFloat(i.expected):null;
+    var exp=(i.expected!==''&&i.expected!==null)?parseQty(i.expected):null;
     var d=(total!==null&&exp!==null)?total-exp:null;
     if(s==='ok') ok.push(i);
     else if(s==='short') short_.push({i:i,d:d});
